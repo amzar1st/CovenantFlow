@@ -17,5 +17,6 @@ jobs:
         with:
           version: '11.25.0'
       - run: pnpm install --frozen-lockfile
+      - run: node --experimental-strip-types --test tests/write-fees.test.mjs
       - run: pnpm lint
       - run: pnpm build

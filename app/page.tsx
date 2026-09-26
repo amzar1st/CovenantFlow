@@ -5,6 +5,7 @@ import { studioDevnet } from "genlayer-js/chains";
 import { TransactionHashVariant } from "genlayer-js/types";
 import { GitBranch, ShieldCheck, Wallet, ArrowUpRight } from "lucide-react";
 import { CONTRACT_ADDRESS } from "./project-config";
+import { estimateWriteFees } from "../lib/write-fees";
 
 type Provider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
 declare global { interface Window { ethereum?: Provider } }
@@ -75,13 +76,23 @@ export default function Home() {
     await action(label, async () => {
       if (!isAddress(address)) throw Error("Enter the verified contract address.");
       if (!wallet || !window.ethereum) throw Error("Connect your wallet for write actions.");
+      const accounts = await window.ethereum.request({ method: "eth_accounts" }) as string[];
+      if (!accounts?.some(account => account.toLowerCase() === wallet.toLowerCase())) throw Error("Wallet account changed. Connect again before signing.");
+      if (name === "create_agreement" || name === "propose_change") {
+        const deadline = Number(args[3]);
+        const now = Math.floor(Date.now() / 1000);
+        const limit = name === "create_agreement" ? 90 : 30;
+        if (!Number.isSafeInteger(deadline) || deadline <= now || deadline > now + limit * 86400) {
+          throw Error(`Set a deadline in the future, within ${limit} days.`);
+        }
+      }
       const client = createClient({ chain: studioDevnet, account: wallet as `0x${string}`, provider: window.ethereum });
       await client.connect("studioDevnet");
       const call = { address: address as `0x${string}`, functionName: name, args };
       setNotice("Estimating GenLayer fees…");
-      const estimate = await client.estimateTransactionFeesForWrite(call);
-      setNotice("Review this transaction in your wallet.");
-      const hash = await client.writeContract({ ...call, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue } });
+      const { estimate, fallback } = await estimateWriteFees(client, call);
+      setNotice(fallback ? "Studio could not simulate the deadline. Using network fee policy; review the wallet request." : "Review this transaction in your wallet.");
+      const hash = await client.writeContract({ ...call, fees: { distribution: estimate.distribution, feeValue: estimate.feeValue, messageAllocations: estimate.messageAllocations } });
       setTx(hash); setNotice("Submitted. Waiting for finalization…");
       const receipt = await client.waitForFinalization({ hash });
       if (!isSuccessful(receipt)) throw Error(`Transaction failed: ${receipt.statusName} / ${receipt.txExecutionResultName}`);

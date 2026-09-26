@@ -34,7 +34,7 @@ pnpm lint
 pnpm build
 ```
 
-The frontend pins `genlayer-js@2.0.0-rc.1` and the `studioDevnet` chain definition. Fee estimates are obtained for the specific write before it is submitted. This is a development path; a measured fee profile should replace per-click simulation before production use.
+The frontend pins `genlayer-js@2.0.0-rc.1` and the `studioDevnet` chain definition. It estimates fees for the specific write before submission. Studio Dev's simulation currently reports `Invalid acceptance deadline` or `Invalid change deadline` for a valid future deadline, although the previously finalized Studio transactions succeeded with those deadlines. For these two exact simulation errors, the app validates the date locally and falls back to the SDK's network fee policy; all other simulation errors stop the write. This fallback is a development path. A measured fee profile and a signed browser-wallet transaction should be verified before production use.
 
 ## Verified Studio Dev deployment
 
