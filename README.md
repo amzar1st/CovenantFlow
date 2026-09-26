@@ -1,55 +1,38 @@
 # CovenantFlow
 
-CovenantFlow records two-party service agreements and change orders on GenLayer Studio Dev. A client creates the original terms; the named provider accepts. Either party can propose complete replacement terms. GenLayer validators independently classify the difference as MATERIAL, MINOR, or UNCLEAR. The classification is advisory: **the current terms change only after both named parties approve the exact proposed version**.
+CovenantFlow records two-party service agreements and change orders on GenLayer Studionet (chain 61999). A client creates the terms, the named provider accepts, and either can propose full replacement terms. Validators classify the change as MATERIAL, MINOR, or UNCLEAR. Their classification is advisory: **both named parties must approve the proposed version before the active terms change**.
 
 No funds or bonds are held. This is an audit and consent workflow, not legal advice or automated contract enforcement.
 
-## Workflow
+## Use it
 
-1. Connect an EIP-1193 browser wallet to Studio Dev (chain ID 61997) for writes; public reads need no wallet.
-2. Client calls `create_agreement(provider, title, terms, accept_by)`.
-3. Provider calls `accept_agreement(id)` before the deadline.
-4. Either party calls `propose_change(id, proposed_terms, reason, expires_at)`.
-5. Call `assess_change(change_id)` in Full Consensus. The leader and each validator independently classify the fixed original and proposed text. The category must match exactly; disagreement cannot silently change terms.
-6. Both parties separately call `approve_change(change_id)` before expiry. Only the second approval activates the new terms and increments the version.
-7. Either party may `reject_change`, or anyone may `expire_change` after its deadline; original terms remain active.
+- [Public record viewer](https://covenantflow.amzar1st96.chatgpt.site): inspect finalized agreements and changes without a wallet. Agreement 1 and change 1 are nonbinding sandbox examples.
+- [GenLayer Studio](https://studio.genlayer.com/contracts): load `contracts/CovenantFlowStudionet.py`, use Studio's built-in accounts to sign writes, and select **Normal (Full Consensus)** for validator assessment. The verified deployment address is below. No external wallet connection is needed for this workflow.
+- [Explorer](https://explorer-studio.genlayer.com/address/0x1979f47F975A5Cd8df60bB82C20Fd999A934466B): inspect the deployed contract and transactions.
 
-All agreement and change records are publicly readable using `get_agreement`, `get_change`, and `get_counts`. One pending change per agreement avoids competing replacements. The provider acceptance deadline has a permissionless expiry route.
+The method sequence is `create_agreement`, `accept_agreement`, `propose_change`, `assess_change`, then `approve_change` from each party. `reject_change`, `expire_change`, and `expire_agreement` handle other outcomes. `get_counts`, `get_agreement`, and `get_change` expose public state. One pending change per agreement prevents competing replacements.
 
-## Project structure
+## Verified Studionet deployment
 
-- `contracts/CovenantFlow.py`: GenLayer Intelligent Contract for Studio Dev's v0.3 Python SDK.
-- `app/page.tsx`: browser application with explicit wallet connection, fee estimation, writes, and `LATEST_FINAL` reads.
-- `tests/`: state-machine tests executing the real contract source against a small deterministic GenLayer stand-in. These **do not** establish GenVM execution or validator consensus.
-- `STUDIO_TEST_PLAN.md`: live deployment and two-account verification checklist.
-- `public/favicon.svg`: CovenantFlow mark.
-
-## Local checks
-
-```bash
-python3 -m pip install pytest
-python3 -m pytest tests -q
-pnpm install --frozen-lockfile
-pnpm lint
-pnpm build
-```
-
-The frontend pins `genlayer-js@2.0.0-rc.1` and the `studioDevnet` chain definition. It estimates fees for the specific write before submission. Studio Dev's simulation currently reports `Invalid acceptance deadline` or `Invalid change deadline` for a valid future deadline, although the previously finalized Studio transactions succeeded with those deadlines. For these two exact simulation errors, the app validates the date locally and falls back to the SDK's network fee policy; all other simulation errors stop the write. This fallback is a development path. A measured fee profile and a signed browser-wallet transaction should be verified before production use.
-
-## Verified Studio Dev deployment
-
-The deployed contract is [0x5C2d13D536D279381E7ACE5B7093199336bA7DB8](https://explorer-studio-dev.genlayer.com/address/0x5C2d13D536D279381E7ACE5B7093199336bA7DB8) on chain 61997. Studio ran in **Normal (Full Consensus)** mode. The following transaction IDs reached `FINALIZED`; finalized reads confirmed their effects:
+Contract: [`0x1979f47F975A5Cd8df60bB82C20Fd999A934466B`](https://explorer-studio.genlayer.com/address/0x1979f47F975A5Cd8df60bB82C20Fd999A934466B). Studio ran in **Normal (Full Consensus)** with two distinct built-in accounts, client `0x0a9dFfc076bE51AAdfBA36317cb02D55a13EA8e5` and provider `0x3D4f4ffECAcEabC522a797A4502FAd89FEc8dD49`. Each transaction reached `FINALIZED`:
 
 | Step | Transaction |
 | --- | --- |
-| Deploy | [0x8cc0…1cbf7](https://explorer-studio-dev.genlayer.com/tx/0x8cc023a6f0e9b8ad1a5fd63e410659ccabb694c445588dce85bf9e7dd601cbf7) |
-| Create agreement #1 | [0xf75c…c4e28](https://explorer-studio-dev.genlayer.com/tx/0xf75cf4e5c5766a9fab220791e4a7d65568683c4d37a9cc203f5fb5a86a6c4e28) |
-| Provider accepts | [0x0637…78746](https://explorer-studio-dev.genlayer.com/tx/0x0637a12c0f98a547878d4046a1d69453571738f033223eba082ca07e66b78746) |
-| Client proposes change #1 | [0xc3f9…61cf1](https://explorer-studio-dev.genlayer.com/tx/0xc3f993ebcbdc1856f58d8607f6abef4f2c465e024e7a869f0cbe005a90261cf1) |
-| Validators assess | [0xacca…baee6](https://explorer-studio-dev.genlayer.com/tx/0xaccaa5a394e732b6abe3a97ef2dc036469bd37d8028cdb52096d7634c6ebaee6) |
-| Client approves | [0x9027…af08b](https://explorer-studio-dev.genlayer.com/tx/0x9027ded0b9d9c30e314f333d2e773d79edf836eb86a830c6fa14879eceaaf08b) |
-| Provider approves | [0x2681…ed87](https://explorer-studio-dev.genlayer.com/tx/0x26815e577e1074f0555b9f9e9c8f822407cae7f8c4f0e2fe78043dd00600ed87) |
+| Deploy | [0x48a4…4fd](https://explorer-studio.genlayer.com/tx/0x48a43aed11de6eb299731ebcdefe437774896533688b0adb8984274573d144fd) |
+| Create agreement 1 | [0x9699…134](https://explorer-studio.genlayer.com/tx/0x96991866c174ecee2d641fce5b4e32994a52aaf783bbca51b343e057ca495134) |
+| Provider accepts | [0x4981…d9](https://explorer-studio.genlayer.com/tx/0x4981543fdefd4894d546b1a254e9bb4d42c8837a53e4dd26614ad4a411d8b0d9) |
+| Provider proposes change 1 | [0xca46…cfb](https://explorer-studio.genlayer.com/tx/0xca46c24219415d4dbb6938223955d9f310abf0f666bc1d372de82b40ff99ccfb) |
+| Validators assess | [0xea08…6da](https://explorer-studio.genlayer.com/tx/0xea08a3346f64a5ed182fa14060d16636ccf801099204a9f901fdf33d038826da) |
+| Provider approves | [0x8384…472](https://explorer-studio.genlayer.com/tx/0x838401c11b9790ee87f41117aa21c68d203be6e91dfa8224089f4255bec3b472) |
+| Client approves | [0x29f1…ff3](https://explorer-studio.genlayer.com/tx/0x29f1dff3652abb0c0646d67b3c455c0a3acf152d13e5e5abb69351d9f80a8ff3) |
 
-Finalized public reads showed `MATERIAL` classification, version 1 and original terms after the client's approval alone, then version 2 with the exact replacement text and `ACTIVATED` history after the provider's approval. The independent Python tests cover rejection and expiry paths; those paths were not exercised live. The browser wallet write path was not tested with an injected extension; Studio sandbox accounts were used for writes. The site's public read path was tested against this address.
+Finalized reads showed `MATERIAL`, original terms and version 1 after the first approval, then the exact replacement terms, version 2, and `ACTIVATED` with both approval flags true after the second. The public viewer's compatible RPC reader returned counts `[1, 1]` and those same finalized records. The sample terms explicitly state `TEST ONLY, NON-BINDING`.
 
-The first deployment (`0x021C4f48418A252DfFd1738F523Cf245a1573fcF`) is superseded. Its assessment call failed because that draft used `gl.vm.run_nondet_unsafe`, which Studio Dev's v0.3 VM did not expose. The corrected source uses `gl.vm.run_nondet`, and its assessment succeeded on the address above.
+## Source and checks
+
+- `contracts/CovenantFlowStudionet.py` is the deployed v0.2.16 contract. Studio's older runtime uses `gl.eq_principle.strict_eq` for consensus and JSON records in `TreeMap` storage.
+- `contracts/CovenantFlow.py` preserves the original v0.3 Studio Dev implementation and its historical tests. It is not the Studionet deployment.
+- `lib/studionet-read.ts` encodes the v0.2 `method` call field and reads `latest-final` state. The current `genlayer-js@2.0.0-rc.1` contract helper encodes v0.3's empty-string method field, so the viewer uses the SDK's lower-level calldata and RPC functions.
+- The public site is a read-only viewer. Studio's built-in accounts were used for all live writes and consensus testing; browser wallet signing is not part of this Studionet run.
+
+Run `python3 -m py_compile contracts/CovenantFlowStudionet.py`, `python3 -m pytest tests -q`, `pnpm install --frozen-lockfile`, `pnpm exec tsc --noEmit`, and `pnpm build` for local checks. The existing Python suite covers the historical v0.3 implementation; the v0.2 version was exercised on the live Studionet workflow above.
